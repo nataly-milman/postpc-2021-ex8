@@ -8,7 +8,7 @@ import android.preference.PreferenceManager;
 import java.util.ArrayList;
 
 public class MyApp extends Application {
-    public ArrayList<Calculation> calculations;
+    public ArrayList<CalculationDetails> calculationDetails;
     SharedPreferences sp;
     Context context;
 
@@ -21,7 +21,7 @@ public class MyApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        calculations = new ArrayList<>();
+        calculationDetails = new ArrayList<>();
     }
 
 }

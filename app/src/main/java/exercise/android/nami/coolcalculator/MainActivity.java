@@ -17,6 +17,7 @@ public class MainActivity extends AppCompatActivity {
     EditText numberText;
     FloatingActionButton calculateButton;
     MyApp app;
+    CalculatorHolder holder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,6 +25,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         app = new MyApp(this);
+        holder = new CalculatorHolder();
+        holder.calculations = app.calculationDetails;
+        for (CalculationDetails calculationDetails : holder.calculations) {
+            if (calculationDetails.status.equals("in progress")) {
+                runCalculationWorker(calculationDetails);
+            }
+        }
 
         numberText = findViewById(R.id.numberText);
         calculateButton = findViewById(R.id.calculateButton);
@@ -31,42 +39,63 @@ public class MainActivity extends AppCompatActivity {
         calculateButton.setOnClickListener(view -> {
             try {
                 long number = Long.parseLong(numberText.getText().toString());
-                runCalculationWorker(new Calculation(number));
+                if (holder.findNumberInCalculationsList(number)) {
+                    Toast.makeText(this, "Seen this number before", Toast.LENGTH_SHORT).show();
+                } else {
+                    CalculationDetails calculationDetails = new CalculationDetails(number);
+                    runCalculationWorker(calculationDetails);
+                    holder.addCalculation(calculationDetails);
+                }
                 numberText.setText("");
                 Toast.makeText(this, Long.toString(number), Toast.LENGTH_SHORT).show();
             } catch (NumberFormatException e) {
-                Toast.makeText(this, "Invalid number (maybe roo big)", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Invalid number (maybe too big)", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
 
-    private void runCalculationWorker(Calculation calculation) {
+    private void runCalculationWorker(CalculationDetails calculationDetails) {
         Data.Builder dataBuilder = new Data.Builder();
-        dataBuilder.putString("id", calculation.id);
-        dataBuilder.putLong("number", calculation.number);
-        dataBuilder.putLong("currentNumber", calculation.currentNumber);
+        dataBuilder.putString("id", calculationDetails.id);
+        dataBuilder.putLong("number", calculationDetails.number);
+        dataBuilder.putLong("currentNumber", calculationDetails.currentNumber);
 
         OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(CalculatorWorker.class)
                 .setInputData(dataBuilder.build()).build();
 
         WorkManager.getInstance(this).enqueue(workRequest);
-        calculation.workId = workRequest.getId().toString();
+        calculationDetails.workId = workRequest.getId().toString();
 
         LiveData<WorkInfo> workInfo = WorkManager.getInstance(getApplicationContext())
                 .getWorkInfoByIdLiveData(workRequest.getId());
-        workInfo.observeForever(workInfoObs -> {
-            if (workInfoObs != null) {
-                WorkInfo.State state = workInfoObs.getState();
-                if (state == WorkInfo.State.SUCCEEDED) {
-                    Data output = workInfoObs.getOutputData();
-                    //TODO handle success
-                } else if (state == WorkInfo.State.FAILED) {
-                    Data output = workInfoObs.getOutputData();
+
+        workInfo.observeForever(workInfoObs -> observe(workInfoObs, calculationDetails));
+    }
+
+    private void observe(WorkInfo workInfoObs, CalculationDetails calculationDetails) {
+        if (workInfoObs != null) {
+            WorkInfo.State state = workInfoObs.getState();
+            if (state == WorkInfo.State.SUCCEEDED) {
+                Data output = workInfoObs.getOutputData();
+                System.out.println(output);
+                System.out.println(output.getLong("root1", 0));
+                System.out.println(output.getLong("root2", 0));
+                //TODO handle success
+                this.holder.markDone(output.getString("id"), "done");
+
+
+            } else if (state == WorkInfo.State.FAILED) {
+                Data output = workInfoObs.getOutputData();
+                if (output.getBoolean("notDone", false)) {
+                    calculationDetails.currentNumber = output.getLong("currentNumber", 2);
+                    runCalculationWorker(calculationDetails);
+                } else {
                     // TODO handle failure
+                    this.holder.markDone(output.getString("id"), "no roots");
+
                 }
-                // TODO hadle progress bar
             }
-        });
+        }
     }
 }
