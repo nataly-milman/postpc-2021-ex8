@@ -1,0 +1,27 @@
+package exercise.android.nami.coolcalculator;
+
+import android.app.Application;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+
+import java.util.ArrayList;
+
+public class MyApp extends Application {
+    public ArrayList<Calculation> calculations;
+    SharedPreferences sp;
+    Context context;
+
+    public MyApp(Context context) {
+        super.onCreate();
+        this.context = context;
+        this.sp = PreferenceManager.getDefaultSharedPreferences(context);
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        calculations = new ArrayList<>();
+    }
+
+}
