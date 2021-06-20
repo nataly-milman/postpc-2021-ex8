@@ -24,4 +24,8 @@ public class MyApp extends Application {
         calculationDetails = new ArrayList<>();
     }
 
+    public void updateCalculations(ArrayList<CalculationDetails> calculationDetails){
+        this.calculationDetails = calculationDetails;
+    }
+
 }

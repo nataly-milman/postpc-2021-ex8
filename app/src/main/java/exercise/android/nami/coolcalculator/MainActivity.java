@@ -6,6 +6,9 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.LiveData;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.work.Data;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkInfo;
@@ -13,11 +16,15 @@ import androidx.work.WorkManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import static android.widget.LinearLayout.VERTICAL;
+
 public class MainActivity extends AppCompatActivity {
     EditText numberText;
     FloatingActionButton calculateButton;
     MyApp app;
     CalculatorHolder holder;
+    RecyclerView recyclerRoots;
+    CalculatorAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,12 +33,11 @@ public class MainActivity extends AppCompatActivity {
 
         app = new MyApp(this);
         holder = new CalculatorHolder();
-        holder.calculations = app.calculationDetails;
-        for (CalculationDetails calculationDetails : holder.calculations) {
-            if (calculationDetails.status.equals("in progress")) {
-                runCalculationWorker(calculationDetails);
-            }
+        if (app.calculationDetails != null) {
+            holder.calculations = app.calculationDetails;
         }
+        adapter = new CalculatorAdapter(holder, WorkManager.getInstance(MainActivity.this),app);
+
 
         numberText = findViewById(R.id.numberText);
         calculateButton = findViewById(R.id.calculateButton);
@@ -45,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
                     CalculationDetails calculationDetails = new CalculationDetails(number);
                     runCalculationWorker(calculationDetails);
                     holder.addCalculation(calculationDetails);
+                    adapter.notifyItemInserted(holder.indexOf(calculationDetails));
                 }
                 numberText.setText("");
                 Toast.makeText(this, Long.toString(number), Toast.LENGTH_SHORT).show();
@@ -52,6 +59,17 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "Invalid number (maybe too big)", Toast.LENGTH_SHORT).show();
             }
         });
+        recyclerRoots = findViewById(R.id.recyclerRoots);
+        recyclerRoots.setAdapter(adapter);
+        recyclerRoots.setLayoutManager(new LinearLayoutManager(this));
+        recyclerRoots.addItemDecoration(new DividerItemDecoration(this, VERTICAL));
+
+        for (CalculationDetails calculationDetails : holder.calculations) {
+            if (calculationDetails.status.equals("in progress")) {
+                runCalculationWorker(calculationDetails);
+            }
+        }
+
     }
 
 
@@ -78,22 +96,34 @@ public class MainActivity extends AppCompatActivity {
             WorkInfo.State state = workInfoObs.getState();
             if (state == WorkInfo.State.SUCCEEDED) {
                 Data output = workInfoObs.getOutputData();
-                System.out.println(output);
-                System.out.println(output.getLong("root1", 0));
-                System.out.println(output.getLong("root2", 0));
-                //TODO handle success
-                this.holder.markDone(output.getString("id"), "done");
-
-
+                calculationDetails.root1 =  output.getLong("root1", 0);
+                calculationDetails.root2 = output.getLong("root2", 0);
+                holder.markDone(calculationDetails.id,"done");
+                holder.markDone(output.getString("id"), "done");
+                adapter.notifyDataSetChanged();
+                CalculatorAdapter.ViewHolder viewHolder = (CalculatorAdapter.ViewHolder) recyclerRoots.
+                        findViewHolderForLayoutPosition(holder.indexOf(calculationDetails));
+                if (viewHolder != null) {
+                    // fails if asserted
+                    viewHolder.SetViewsToComplete(calculationDetails);
+                }
             } else if (state == WorkInfo.State.FAILED) {
                 Data output = workInfoObs.getOutputData();
                 if (output.getBoolean("notDone", false)) {
                     calculationDetails.currentNumber = output.getLong("currentNumber", 2);
                     runCalculationWorker(calculationDetails);
                 } else {
-                    // TODO handle failure
-                    this.holder.markDone(output.getString("id"), "no roots");
-
+                    holder.markDone(output.getString("id"), "no roots");
+                    calculationDetails.status = "prime";
+                    holder.markDone(calculationDetails.id,"prime");
+                    adapter.notifyDataSetChanged();
+                    adapter.notifyDataSetChanged();
+                    CalculatorAdapter.ViewHolder viewHolder = (CalculatorAdapter.ViewHolder) recyclerRoots.
+                            findViewHolderForLayoutPosition(holder.indexOf(calculationDetails));
+                    if (viewHolder != null) {
+                        // fails if asserted
+                        viewHolder.SetViewsToComplete(calculationDetails);
+                    }
                 }
             }
         }

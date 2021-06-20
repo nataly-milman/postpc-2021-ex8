@@ -21,7 +21,7 @@ public class CalculationDetails implements Serializable, Comparable<CalculationD
         root1 = -1;
         root2 = -1;
         currentNumber = 2;
-        status = "new number";
+        status = "in progress";
     }
 
     @Override

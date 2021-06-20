@@ -7,7 +7,7 @@ import java.util.Collections;
 
 public class CalculatorHolder extends Activity {
 
-    ArrayList<CalculationDetails> calculations;
+    public ArrayList<CalculationDetails> calculations;
 
     public CalculatorHolder() {
         calculations = new ArrayList<>();
@@ -18,20 +18,24 @@ public class CalculatorHolder extends Activity {
         Collections.sort(calculations);
     }
 
+    public int indexOf(CalculationDetails calculationDetails){
+        return calculations.indexOf(calculationDetails);
+    }
+
     public void markDone(String id, String status) {
-        for (CalculationDetails calc : calculations) {
-            if (calc.id.equals(id)) {
-                calc.status = status;
-                calc.progressPerc = 100;
+        for (int i = 0; i < calculations.size(); i++) {
+            if (calculations.get(i).id.equals(id)) {
+                calculations.get(i).status = status;
+                calculations.get(i).progressPerc = 100;
                 Collections.sort(calculations);
             }
         }
     }
 
     public void deleteCalculation(String id) {
-        for (CalculationDetails calc : calculations) {
-            if (calc.id.equals(id)) {
-                calculations.remove(calc);
+        for (int i = 0; i < calculations.size(); i++) {
+            if (calculations.get(i).id.equals(id)) {
+                calculations.remove(calculations.get(i));
                 Collections.sort(calculations);
             }
         }
