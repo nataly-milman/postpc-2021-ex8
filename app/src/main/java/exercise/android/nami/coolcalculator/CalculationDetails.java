@@ -1,5 +1,9 @@
 package exercise.android.nami.coolcalculator;
 
+import androidx.annotation.NonNull;
+
+import org.jetbrains.annotations.NotNull;
+
 import java.io.Serializable;
 import java.util.Random;
 import java.util.UUID;
@@ -27,17 +31,24 @@ public class CalculationDetails implements Serializable, Comparable<CalculationD
     @Override
     public int compareTo(CalculationDetails o) {
         if (this.status.equals("in progress")) {
-            if (!o.status.equals("in progress") || (this.number <= o.number)) {
-                return -1;
-            } else {
-                return 1;
-            }
+            return  (!o.status.equals("in progress") || (this.number <= o.number))?  -1 : 1;
         } else if (o.status.equals("in progress") && !this.status.equals("in progress") ) {
-                return 1;
-        } else if (this.number > o.number) {
             return 1;
-        } else {
-            return -1;
+        } else return (this.number > o.number) ? 1 : -1;
+    }
+
+    @NonNull
+    @NotNull
+    @Override
+    public String toString() {
+        String res = "";
+        if (this.status.equals("in progress")) {
+            res = "Calculating roots for " + this.number + "(" + this.progressPerc + "%)";
+        } else if (this.status.equals("done")) {
+            res = "Roots for " + this.number + " = " + this.root1 + "*" + this.root2;
+        } else if (this.status.equals("prime")) {
+            res = "No roots for " + this.number + ", it's prime!";
         }
+        return res;
     }
 }

@@ -94,21 +94,20 @@ public class MainActivity extends AppCompatActivity {
     private void observe(WorkInfo workInfoObs, CalculationDetails calculationDetails) {
         if (workInfoObs != null) {
             WorkInfo.State state = workInfoObs.getState();
+            Data output = workInfoObs.getOutputData();
             if (state == WorkInfo.State.SUCCEEDED) {
-                Data output = workInfoObs.getOutputData();
                 calculationDetails.root1 =  output.getLong("root1", 0);
                 calculationDetails.root2 = output.getLong("root2", 0);
                 holder.markDone(calculationDetails.id,"done");
                 holder.markDone(output.getString("id"), "done");
                 adapter.notifyDataSetChanged();
-                CalculatorAdapter.ViewHolder viewHolder = (CalculatorAdapter.ViewHolder) recyclerRoots.
+                ViewHolder viewHolder = (ViewHolder) recyclerRoots.
                         findViewHolderForLayoutPosition(holder.indexOf(calculationDetails));
                 if (viewHolder != null) {
                     // fails if asserted
-                    viewHolder.SetViewsToComplete(calculationDetails);
+                    viewHolder.setCompleteView(calculationDetails);
                 }
             } else if (state == WorkInfo.State.FAILED) {
-                Data output = workInfoObs.getOutputData();
                 if (output.getBoolean("notDone", false)) {
                     calculationDetails.currentNumber = output.getLong("currentNumber", 2);
                     runCalculationWorker(calculationDetails);
@@ -118,14 +117,16 @@ public class MainActivity extends AppCompatActivity {
                     holder.markDone(calculationDetails.id,"prime");
                     adapter.notifyDataSetChanged();
                     adapter.notifyDataSetChanged();
-                    CalculatorAdapter.ViewHolder viewHolder = (CalculatorAdapter.ViewHolder) recyclerRoots.
+                    ViewHolder viewHolder = (ViewHolder) recyclerRoots.
                             findViewHolderForLayoutPosition(holder.indexOf(calculationDetails));
                     if (viewHolder != null) {
                         // fails if asserted
-                        viewHolder.SetViewsToComplete(calculationDetails);
+                        viewHolder.setCompleteView(calculationDetails);
                     }
                 }
             }
+
+            // TODO add progress
         }
     }
 }
