@@ -16,6 +16,7 @@ public class MyApp extends Application {
         super.onCreate();
         this.context = context;
         this.sp = PreferenceManager.getDefaultSharedPreferences(context);
+        this.calculationDetails = new ArrayList<>();
     }
 
     @Override

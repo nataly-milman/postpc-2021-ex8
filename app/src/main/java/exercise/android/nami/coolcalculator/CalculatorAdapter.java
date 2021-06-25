@@ -37,12 +37,13 @@ public class CalculatorAdapter extends RecyclerView.Adapter<ViewHolder> {
         holder.showNumberText.setText(calculationDetails.toString());
         holder.deleteButton.setOnClickListener(view -> {
             if (calculationDetails.status.equals("in progress")) {
-                workManager.cancelWorkById(UUID.fromString(calculationDetails.workId));
+                workManager.cancelWorkById(calculationDetails.workId);
             }
             this.holder.deleteCalculation(calculationDetails.id);
             app.updateCalculations(this.holder.calculations);
             notifyItemRangeRemoved(holder.getLayoutPosition(), 1);
         });
+        holder.progressBar.setProgress((int) calculationDetails.progressPerc);
     }
 
     @Override

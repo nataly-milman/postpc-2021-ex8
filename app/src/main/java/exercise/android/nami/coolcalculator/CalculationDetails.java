@@ -14,18 +14,17 @@ public class CalculationDetails implements Serializable, Comparable<CalculationD
     public long root1;
     public long root2;
     public String id;
-    public String workId = "";
-    public String status = "";
-    public int progressPerc;
+    public UUID workId;
+    public String status = "in progress";
+    public double progressPerc;
 
     public CalculationDetails(long number) {
         id = UUID.randomUUID().toString();
-        workId = "";
+//        workId = "";
         this.number = number;
         root1 = -1;
         root2 = -1;
         currentNumber = 2;
-        status = "in progress";
     }
 
     @Override

@@ -25,6 +25,8 @@ public class ViewHolder extends RecyclerView.ViewHolder {
 
     public void setCompleteView(CalculationDetails calculationDetails) {
         showNumberText.setText(calculationDetails.toString());
+        progressBar.setProgress(100);
+//        progressBar.setVisibility(View.GONE);
     }
 
 }

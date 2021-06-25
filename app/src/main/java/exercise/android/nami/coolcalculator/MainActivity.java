@@ -32,15 +32,22 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         app = new MyApp(this);
+
+        numberText = findViewById(R.id.numberText);
+        calculateButton = findViewById(R.id.calculateButton);
+        recyclerRoots = findViewById(R.id.recyclerRoots);
+
         holder = new CalculatorHolder();
         if (app.calculationDetails != null) {
             holder.calculations = app.calculationDetails;
         }
         adapter = new CalculatorAdapter(holder, WorkManager.getInstance(MainActivity.this),app);
 
-
-        numberText = findViewById(R.id.numberText);
-        calculateButton = findViewById(R.id.calculateButton);
+        for (CalculationDetails calculationDetails : holder.calculations) {
+            if (calculationDetails.status.equals("in progress")) {
+                runCalculationWorker(calculationDetails);
+            }
+        }
 
         calculateButton.setOnClickListener(view -> {
             try {
@@ -49,9 +56,10 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "Seen this number before", Toast.LENGTH_SHORT).show();
                 } else {
                     CalculationDetails calculationDetails = new CalculationDetails(number);
-                    runCalculationWorker(calculationDetails);
                     holder.addCalculation(calculationDetails);
                     adapter.notifyItemInserted(holder.indexOf(calculationDetails));
+                    app.updateCalculations(holder.calculations);
+                    runCalculationWorker(calculationDetails);
                 }
                 numberText.setText("");
                 Toast.makeText(this, Long.toString(number), Toast.LENGTH_SHORT).show();
@@ -59,17 +67,9 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "Invalid number (maybe too big)", Toast.LENGTH_SHORT).show();
             }
         });
-        recyclerRoots = findViewById(R.id.recyclerRoots);
         recyclerRoots.setAdapter(adapter);
         recyclerRoots.setLayoutManager(new LinearLayoutManager(this));
         recyclerRoots.addItemDecoration(new DividerItemDecoration(this, VERTICAL));
-
-        for (CalculationDetails calculationDetails : holder.calculations) {
-            if (calculationDetails.status.equals("in progress")) {
-                runCalculationWorker(calculationDetails);
-            }
-        }
-
     }
 
 
@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
                 .setInputData(dataBuilder.build()).build();
 
         WorkManager.getInstance(this).enqueue(workRequest);
-        calculationDetails.workId = workRequest.getId().toString();
+        calculationDetails.workId = workRequest.getId();
 
         LiveData<WorkInfo> workInfo = WorkManager.getInstance(getApplicationContext())
                 .getWorkInfoByIdLiveData(workRequest.getId());
@@ -94,39 +94,52 @@ public class MainActivity extends AppCompatActivity {
     private void observe(WorkInfo workInfoObs, CalculationDetails calculationDetails) {
         if (workInfoObs != null) {
             WorkInfo.State state = workInfoObs.getState();
+
+            ViewHolder viewHolder = (ViewHolder) recyclerRoots.findViewHolderForLayoutPosition(holder.indexOf(calculationDetails));
             Data output = workInfoObs.getOutputData();
             if (state == WorkInfo.State.SUCCEEDED) {
-                calculationDetails.root1 =  output.getLong("root1", 0);
+                calculationDetails.root1 = output.getLong("root1", 0);
                 calculationDetails.root2 = output.getLong("root2", 0);
+                calculationDetails.progressPerc = 100;
                 holder.markDone(calculationDetails.id,"done");
-                holder.markDone(output.getString("id"), "done");
+                app.updateCalculations(holder.calculations);
+                WorkManager.getInstance(this).cancelWorkById(calculationDetails.workId);
                 adapter.notifyDataSetChanged();
-                ViewHolder viewHolder = (ViewHolder) recyclerRoots.
-                        findViewHolderForLayoutPosition(holder.indexOf(calculationDetails));
                 if (viewHolder != null) {
                     // fails if asserted
                     viewHolder.setCompleteView(calculationDetails);
                 }
+//                workManager.getWorkInfoByIdLiveData(workRequest.id)
+//                        .removeObserver(this)
             } else if (state == WorkInfo.State.FAILED) {
                 if (output.getBoolean("notDone", false)) {
                     calculationDetails.currentNumber = output.getLong("currentNumber", 2);
+                    calculationDetails.progressPerc = workInfoObs.getProgress().getInt("progress", 0);
                     runCalculationWorker(calculationDetails);
                 } else {
                     holder.markDone(output.getString("id"), "no roots");
                     calculationDetails.status = "prime";
+                    calculationDetails.progressPerc = 100;
                     holder.markDone(calculationDetails.id,"prime");
+                    app.updateCalculations(holder.calculations);
+                    WorkManager.getInstance(this).cancelWorkById(calculationDetails.workId);
                     adapter.notifyDataSetChanged();
-                    adapter.notifyDataSetChanged();
-                    ViewHolder viewHolder = (ViewHolder) recyclerRoots.
-                            findViewHolderForLayoutPosition(holder.indexOf(calculationDetails));
                     if (viewHolder != null) {
                         // fails if asserted
                         viewHolder.setCompleteView(calculationDetails);
                     }
                 }
+            } else if (state == WorkInfo.State.RUNNING) {
+                if (viewHolder != null) {
+                    Data progress = workInfoObs.getProgress();
+                    System.out.println("------------");
+                    System.out.println(progress.getDouble("progress", 50));
+                    calculationDetails.progressPerc = progress.getDouble("progress", 50);
+                    viewHolder.progressBar.setProgress((int)calculationDetails.progressPerc);
+                    app.updateCalculations(holder.calculations);
+                    adapter.notifyDataSetChanged();
+                }
             }
-
-            // TODO add progress
         }
     }
 }
