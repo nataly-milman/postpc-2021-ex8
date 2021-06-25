@@ -20,7 +20,6 @@ public class CalculationDetails implements Serializable, Comparable<CalculationD
 
     public CalculationDetails(long number) {
         id = UUID.randomUUID().toString();
-//        workId = "";
         this.number = number;
         root1 = -1;
         root2 = -1;

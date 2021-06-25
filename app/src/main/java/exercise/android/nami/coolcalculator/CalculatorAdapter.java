@@ -43,7 +43,6 @@ public class CalculatorAdapter extends RecyclerView.Adapter<ViewHolder> {
             app.updateCalculations(this.holder.calculations);
             notifyItemRangeRemoved(holder.getLayoutPosition(), 1);
         });
-        holder.progressBar.setProgress((int) calculationDetails.progressPerc);
     }
 
     @Override

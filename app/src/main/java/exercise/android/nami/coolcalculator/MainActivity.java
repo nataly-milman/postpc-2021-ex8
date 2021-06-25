@@ -4,8 +4,10 @@ import android.os.Bundle;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -26,8 +28,7 @@ public class MainActivity extends AppCompatActivity {
     RecyclerView recyclerRoots;
     CalculatorAdapter adapter;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -41,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
         if (app.calculationDetails != null) {
             holder.calculations = app.calculationDetails;
         }
-        adapter = new CalculatorAdapter(holder, WorkManager.getInstance(MainActivity.this),app);
+        adapter = new CalculatorAdapter(holder, WorkManager.getInstance(MainActivity.this), app);
 
         for (CalculationDetails calculationDetails : holder.calculations) {
             if (calculationDetails.status.equals("in progress")) {
@@ -87,56 +88,53 @@ public class MainActivity extends AppCompatActivity {
 
         LiveData<WorkInfo> workInfo = WorkManager.getInstance(getApplicationContext())
                 .getWorkInfoByIdLiveData(workRequest.getId());
-
+        // calculations
         workInfo.observeForever(workInfoObs -> observe(workInfoObs, calculationDetails));
+        // progress
+        WorkManager.getInstance(getApplicationContext())
+                .getWorkInfoByIdLiveData(calculationDetails.workId)
+                .observe(this, workInfo1 -> {
+                    ViewHolder viewHolder = (ViewHolder) recyclerRoots
+                            .findViewHolderForLayoutPosition(holder
+                                    .indexOf(calculationDetails));
+                    if (workInfo1 != null) {
+                        Data progress = workInfo1.getProgress();
+                        int value = progress.getInt("progress", 0);
+                        if (viewHolder != null) {
+                            calculationDetails.progressPerc = value;
+                            app.updateCalculations(holder.calculations);
+                            adapter.notifyDataSetChanged();
+                        }
+                    }
+                });
     }
 
     private void observe(WorkInfo workInfoObs, CalculationDetails calculationDetails) {
         if (workInfoObs != null) {
             WorkInfo.State state = workInfoObs.getState();
 
-            ViewHolder viewHolder = (ViewHolder) recyclerRoots.findViewHolderForLayoutPosition(holder.indexOf(calculationDetails));
             Data output = workInfoObs.getOutputData();
             if (state == WorkInfo.State.SUCCEEDED) {
                 calculationDetails.root1 = output.getLong("root1", 0);
                 calculationDetails.root2 = output.getLong("root2", 0);
                 calculationDetails.progressPerc = 100;
-                holder.markDone(calculationDetails.id,"done");
+                holder.markDone(calculationDetails.id, "done");
                 app.updateCalculations(holder.calculations);
                 WorkManager.getInstance(this).cancelWorkById(calculationDetails.workId);
                 adapter.notifyDataSetChanged();
-                if (viewHolder != null) {
-                    // fails if asserted
-                    viewHolder.setCompleteView(calculationDetails);
-                }
-//                workManager.getWorkInfoByIdLiveData(workRequest.id)
-//                        .removeObserver(this)
             } else if (state == WorkInfo.State.FAILED) {
                 if (output.getBoolean("notDone", false)) {
                     calculationDetails.currentNumber = output.getLong("currentNumber", 2);
-                    calculationDetails.progressPerc = workInfoObs.getProgress().getInt("progress", 0);
+                    calculationDetails.progressPerc = workInfoObs.getProgress()
+                            .getInt("progress", 0);
                     runCalculationWorker(calculationDetails);
                 } else {
                     holder.markDone(output.getString("id"), "no roots");
                     calculationDetails.status = "prime";
                     calculationDetails.progressPerc = 100;
-                    holder.markDone(calculationDetails.id,"prime");
+                    holder.markDone(calculationDetails.id, "prime");
                     app.updateCalculations(holder.calculations);
                     WorkManager.getInstance(this).cancelWorkById(calculationDetails.workId);
-                    adapter.notifyDataSetChanged();
-                    if (viewHolder != null) {
-                        // fails if asserted
-                        viewHolder.setCompleteView(calculationDetails);
-                    }
-                }
-            } else if (state == WorkInfo.State.RUNNING) {
-                if (viewHolder != null) {
-                    Data progress = workInfoObs.getProgress();
-                    System.out.println("------------");
-                    System.out.println(progress.getDouble("progress", 50));
-                    calculationDetails.progressPerc = progress.getDouble("progress", 50);
-                    viewHolder.progressBar.setProgress((int)calculationDetails.progressPerc);
-                    app.updateCalculations(holder.calculations);
                     adapter.notifyDataSetChanged();
                 }
             }

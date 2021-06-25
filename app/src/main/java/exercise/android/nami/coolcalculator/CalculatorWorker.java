@@ -10,7 +10,7 @@ import androidx.work.impl.utils.SynchronousExecutor;
 
 public class CalculatorWorker extends Worker {
     public static final int MAX_TIME = 900000;  // 15 minutes = 900000 ms
-    private double progress = 1;
+    private double progress = 0;
 
     public CalculatorWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
@@ -30,11 +30,10 @@ public class CalculatorWorker extends Worker {
         dataBuilder.putString("id", id);
         dataBuilder.putLong("number", number);
 
-        System.out.println("Got work on " + number);
         for (long i = currentNumber; i <= (number / 2); i++) {
-            int progressStep = 5;
-            if ((int) ((i*100.0/number)) >= progress + progressStep){
+            if ((int) ((i*100.0/number)) >= progress + 1){
                 progress = ((i*100.0/number));
+                setProgressAsync(new Data.Builder().putInt("progress", (int) progress).build());
             }
             if (number % i == 0) {
                 dataBuilder.putLong("root1", i);
@@ -46,12 +45,10 @@ public class CalculatorWorker extends Worker {
                 dataBuilder.putLong("currentNumber", i);
                 dataBuilder.putBoolean("notDone", true);
                 dataBuilder.putDouble("progress", progress);
-                setProgressAsync(new Data.Builder().putDouble("progress", progress).build());
                 return Result.failure(dataBuilder.build());
             }
         }
         dataBuilder.putBoolean("notDone", false);
-        setProgressAsync(new Data.Builder().putInt("progress", 100).build());
         return Result.failure(dataBuilder.build());
     }
 
