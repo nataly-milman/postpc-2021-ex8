@@ -6,7 +6,6 @@ import androidx.annotation.NonNull;
 import androidx.work.Data;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
-import androidx.work.impl.utils.SynchronousExecutor;
 
 public class CalculatorWorker extends Worker {
     public static final int MAX_TIME = 900000;  // 15 minutes = 900000 ms

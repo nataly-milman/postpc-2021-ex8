@@ -2,8 +2,6 @@ package exercise.android.nami.coolcalculator;
 
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;

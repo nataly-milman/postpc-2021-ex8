@@ -10,8 +10,6 @@ import androidx.work.WorkManager;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.UUID;
-
 public class CalculatorAdapter extends RecyclerView.Adapter<ViewHolder> {
     public WorkManager workManager;
     public CalculatorHolder holder;

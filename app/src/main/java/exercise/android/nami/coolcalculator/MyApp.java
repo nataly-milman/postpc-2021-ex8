@@ -5,7 +5,10 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.Gson;
 
 public class MyApp extends Application {
     public ArrayList<CalculationDetails> calculationDetails;
@@ -15,8 +18,9 @@ public class MyApp extends Application {
     public MyApp(Context context) {
         super.onCreate();
         this.context = context;
-        this.sp = PreferenceManager.getDefaultSharedPreferences(context);
-        this.calculationDetails = new ArrayList<>();
+        sp = PreferenceManager.getDefaultSharedPreferences(context);
+        calculationDetails = new ArrayList<>();
+        calculationsFromSaved();
     }
 
     @Override
@@ -27,6 +31,17 @@ public class MyApp extends Application {
 
     public void updateCalculations(ArrayList<CalculationDetails> calculationDetails){
         this.calculationDetails = calculationDetails;
+        String itemsJson = new Gson().toJson(calculationDetails);
+        sp.edit().putString("calculationDetails", itemsJson).apply();
+    }
+
+    public void calculationsFromSaved() {
+        String itemsJson = sp.getString("calculationDetails", "");
+
+        if (itemsJson.length() != 0) {
+            Type listType = new TypeToken<ArrayList<CalculationDetails>>(){}.getType();
+            calculationDetails = new Gson().fromJson(itemsJson, listType);
+        }
     }
 
 }
